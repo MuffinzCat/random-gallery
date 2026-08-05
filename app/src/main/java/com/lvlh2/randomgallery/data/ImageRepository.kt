@@ -33,6 +33,19 @@ class ImageRepository(
             items
         }
 
+    /**
+     * Document uri via the framework helper. NOTE: some vendor ROMs (e.g. vivo)
+     * implement buildDocumentUriUsingTree by appending to the TREE uri, yielding
+     * content://.../tree/<treeId>/document/<docId> instead of the AOSP standard
+     * content://.../document/<docId>. On those ROMs the tree-shaped uri is what
+     * the DocumentsProvider actually serves — the standard shape fails to load
+     * images there — so keep the framework helper and don't "normalize".
+     */
+    private fun buildDocumentUri(
+        treeUri: Uri,
+        docId: String,
+    ): String = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId).toString()
+
     private fun enumerateFolder(
         uriString: String,
         out: MutableList<ImageItem>,
@@ -61,7 +74,7 @@ class ImageRepository(
                     val name = cursor.getString(nameCol) ?: continue
                     if (!isImageFile(name)) continue
                     val docId = cursor.getString(idCol)
-                    val uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId).toString()
+                    val uri = buildDocumentUri(treeUri, docId)
                     if (seen.add(uri)) out += ImageItem(uri = uri, name = name)
                 }
             }

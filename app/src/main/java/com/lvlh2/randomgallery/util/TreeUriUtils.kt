@@ -6,8 +6,15 @@ import java.net.URLDecoder
 // "content://com.android.externalstorage.documents/tree/primary%3ADCIM%2FCamera".
 // Pure string code (no android.net.Uri) so the logic is unit-testable.
 
-/** Decoded document id of a tree URI, e.g. "primary:DCIM/Camera". */
-fun getTreeDocumentId(uriString: String): String = URLDecoder.decode(uriString.substringAfterLast('/'), Charsets.UTF_8)
+/**
+ * Decoded document id of a tree URI, e.g. "primary:DCIM/Camera".
+ *
+ * Uses the (String, String) overload of URLDecoder: the Charset overload only
+ * exists since Java 10 (Android API 33), so it would crash with NoSuchMethodError
+ * on API 24–32 devices.
+ */
+@Suppress("DEPRECATION")
+fun getTreeDocumentId(uriString: String): String = URLDecoder.decode(uriString.substringAfterLast('/'), "UTF-8")
 
 /**
  * Display name for a tree URI: the last path segment after the volume part,

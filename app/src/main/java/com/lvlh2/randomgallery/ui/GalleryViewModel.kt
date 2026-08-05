@@ -16,12 +16,14 @@ import com.lvlh2.randomgallery.model.ImageItem
 import com.lvlh2.randomgallery.model.SavedFolder
 import com.lvlh2.randomgallery.util.deriveFolderName
 import com.lvlh2.randomgallery.util.fisherYatesShuffle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -112,7 +114,9 @@ class GalleryViewModel(
     suspend fun deleteImage(item: ImageItem): Boolean {
         val deleted =
             try {
-                DocumentsContract.deleteDocument(app.contentResolver, Uri.parse(item.uri))
+                withContext(Dispatchers.IO) {
+                    DocumentsContract.deleteDocument(app.contentResolver, Uri.parse(item.uri))
+                }
             } catch (_: Exception) {
                 false
             }
