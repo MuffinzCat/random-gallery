@@ -1,7 +1,7 @@
 package com.lvlh2.randomgallery.util
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.random.Random
@@ -31,8 +31,10 @@ class ShuffleTest {
     fun `shuffle returns a new list`() {
         val input = listOf(1, 2, 3, 4, 5)
         val result = fisherYatesShuffle(input)
-        assertNotEquals(input, result) // different instance
-        assertNotEquals(input, result) // and generally a different order
+        // Always a fresh instance (assertNotEquals compares contents — and content
+        // equality is a 1-in-120 flake on a 5-element Fisher-Yates).
+        assertNotSame(input, result)
+        assertEquals(input.sorted(), result.sorted())
     }
 
     @Test
