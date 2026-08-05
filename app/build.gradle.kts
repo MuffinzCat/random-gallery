@@ -59,6 +59,18 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    // Single output name for every variant (old Expo build named its APK random-gallery.apk).
+    // The public VariantOutput interface doesn't expose outputFileName, but the runtime
+    // objects are VariantOutputImpl, which does — set it there (AGP-8 way, no deprecated API).
+    androidComponents {
+        onVariants { variant ->
+            variant.outputs.forEach { output ->
+                (output as com.android.build.api.variant.impl.VariantOutputImpl)
+                    .outputFileName = "random-gallery.apk"
+            }
+        }
+    }
 }
 
 kotlin {

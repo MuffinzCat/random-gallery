@@ -13,7 +13,7 @@ Native Android app written in **Kotlin + Jetpack Compose** — a full rewrite of
 ./gradlew assembleRelease   # release APK
 ```
 
-APK output: `app/build/outputs/apk/{debug,release}/app-{debug,release}.apk`. Use `gradlew.bat` in cmd/PowerShell; `./gradlew` works in Git Bash. Android Studio recommended as IDE.
+APK output: `app/build/outputs/apk/{debug,release}/random-gallery.apk` (all variants renamed to the same filename). Use `gradlew.bat` in cmd/PowerShell; `./gradlew` works in Git Bash. Android Studio recommended as IDE.
 
 ## Identity invariants — never break
 
