@@ -4,10 +4,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -22,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -38,6 +38,7 @@ import com.lvlh2.randomgallery.ui.Screen
 import com.lvlh2.randomgallery.ui.screens.FoldersScreen
 import com.lvlh2.randomgallery.ui.screens.RandomScreen
 import com.lvlh2.randomgallery.ui.screens.ViewerScreen
+import kotlinx.coroutines.launch
 
 @Composable
 fun RandomGalleryApp(viewModel: GalleryViewModel = viewModel()) {
@@ -70,6 +71,8 @@ private fun TabScaffold(
 ) {
     var tab by rememberSaveable { mutableStateOf(AppTab.RANDOM) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(state.message) {
         state.message?.let {
@@ -102,23 +105,27 @@ private fun TabScaffold(
             }
         },
         floatingActionButton = {
-            when (tab) {
-                AppTab.RANDOM ->
-                    FloatingActionButton(onClick = viewModel::reshuffle) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "Reshuffle")
-                    }
-                AppTab.FOLDERS ->
-                    ExtendedFloatingActionButton(
-                        onClick = { folderPicker.launch(null) },
-                        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                        text = { Text("Import Folder") },
-                    )
+            if (tab == AppTab.RANDOM) {
+                FloatingActionButton(
+                    onClick = {
+                        viewModel.reshuffle()
+                        scope.launch { gridState.animateScrollToItem(0) }
+                    },
+                ) {
+                    Icon(Icons.Filled.Refresh, contentDescription = "Reshuffle")
+                }
             }
         },
     ) { padding ->
         when (tab) {
-            AppTab.RANDOM -> RandomScreen(viewModel, state, Modifier.padding(padding))
-            AppTab.FOLDERS -> FoldersScreen(viewModel, state, Modifier.padding(padding))
+            AppTab.RANDOM -> RandomScreen(viewModel, state, gridState, Modifier.padding(padding))
+            AppTab.FOLDERS ->
+                FoldersScreen(
+                    viewModel,
+                    state,
+                    onImportClick = { folderPicker.launch(null) },
+                    modifier = Modifier.padding(padding),
+                )
         }
     }
 }

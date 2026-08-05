@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,6 +26,7 @@ import com.lvlh2.randomgallery.ui.GalleryViewModel
 fun RandomScreen(
     viewModel: GalleryViewModel,
     state: GalleryViewModel.GalleryUiState,
+    gridState: LazyGridState,
     modifier: Modifier = Modifier,
 ) {
     when {
@@ -50,6 +52,7 @@ fun RandomScreen(
 
         else ->
             LazyVerticalGrid(
+                state = gridState,
                 columns = GridCells.Fixed(3),
                 modifier = modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +33,7 @@ import com.lvlh2.randomgallery.ui.GalleryViewModel
 fun FoldersScreen(
     viewModel: GalleryViewModel,
     state: GalleryViewModel.GalleryUiState,
+    onImportClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var removeTarget by remember { mutableStateOf<SavedFolder?>(null) }
@@ -57,12 +59,22 @@ fun FoldersScreen(
             }
         }
         Text(
-            "Swipe up to delete, swipe down to exit",
+            "💡 In the full-screen viewer:\nswipe up to delete, swipe down to exit",
             modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Button(
+            onClick = onImportClick,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            Text("Import Folder")
+        }
     }
 
     removeTarget?.let { folder ->
