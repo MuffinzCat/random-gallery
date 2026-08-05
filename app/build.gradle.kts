@@ -16,8 +16,8 @@ android {
         applicationId = "com.lvlh2.randomgallery"
         minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.2.0"
+        versionCode = 20
+        versionName = "2.0.0"
     }
 
     // One keystore for BOTH variants — mirrors the old Expo build, where the release
