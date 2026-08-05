@@ -1,0 +1,14 @@
+* text=auto
+
+# Shell scripts must stay LF everywhere (CRLF breaks ./gradlew in bash)
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Windows batch files need CRLF
+*.bat text eol=crlf
+
+# Binary — never line-convert
+*.jar binary
+*.webp binary
+*.png binary
+*.keystore binary

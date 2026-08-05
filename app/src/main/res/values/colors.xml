@@ -1,0 +1,4 @@
+<resources>
+    <!-- Referenced by the adaptive launcher icon (mipmap-anydpi-v26/ic_launcher.xml) -->
+    <color name="iconBackground">#000000</color>
+</resources>

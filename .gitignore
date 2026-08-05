@@ -1,45 +1,29 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Gradle
+.gradle/
+build/
 
-# dependencies
-node_modules/
-
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
-
-# Native
+# Android / IDE
+local.properties
+.idea/
+*.iml
+*.hprof
+.cxx/
 .kotlin/
-*.orig.*
+
+# Claude
+.claude/
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Keys.
+# app/debug.keystore is INTENTIONALLY TRACKED: it is the well-known public Android
+# debug key (password "android", shipped in every RN/Expo template), and signing
+# with this exact key is what lets the new APK install over the old Expo app
+# (v1.0.9). A future production keystore must NEVER be committed:
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
-
-example
-
-# generated native folders
-/ios
-/android
-
-.claude/

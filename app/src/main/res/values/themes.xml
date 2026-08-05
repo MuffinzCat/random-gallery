@@ -1,0 +1,8 @@
+<resources>
+    <!-- Platform theme, no appcompat: this is a Compose-only app. -->
+    <!-- android:Theme.Material.NoActionBar is inherently dark (app is dark-only); -->
+    <!-- the black windowBackground kills the white flash at startup. -->
+    <style name="Theme.RandomGallery" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#000000</item>
+    </style>
+</resources>

@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/images/image.png" width="128" alt="Random Gallery" />
-</p>
-
 <h1 align="center">Random Gallery</h1>
 
 <p align="center">
@@ -46,13 +42,3 @@ Download the APK, install it on your Android device, and start browsing.
 6. Swipe up to delete, swipe down to exit the viewer
 
 Images are read directly from their source folders via MediaStore and SAF. The app never copies or moves your files.
-
-## Screenshots
-
-<p align="center">
-  <img src="assets/screenshots/random.png" width="30%" alt="Random grid" />
-  &nbsp;
-  <img src="assets/screenshots/fullscreen.png" width="30%" alt="Full-screen viewer" />
-  &nbsp;
-  <img src="assets/screenshots/folders.png" width="30%" alt="Folder management" />
-</p>
