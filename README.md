@@ -6,12 +6,9 @@
 </p>
 
 <p align="center">
-  <sub>⚠️ Built with vibe coding — expect quirks.</sub>
-</p>
-
-<p align="center">
   <a href="#download">Download APK</a> ·
   <a href="#features">Features</a> ·
+  <a href="#screenshots">Screenshots</a> ·
   <a href="#how-it-works">How It Works</a>
 </p>
 
@@ -31,6 +28,13 @@ Download the APK, install it on your Android device, and start browsing.
 | 📁 **Folder import**      | Pick folders via Android SAF                                             |
 | ✅ **Selective browsing** | Toggle folders on/off with checkboxes                                    |
 | 🔍 **Full-screen viewer** | Pinch to zoom, swipe to navigate, swipe up to delete, swipe down to exit |
+
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/random.webp" alt="Random tab" width="280" />
+  <img src="screenshots/folders.webp" alt="Folders tab" width="280" />
+</p>
 
 ## How It Works
 
