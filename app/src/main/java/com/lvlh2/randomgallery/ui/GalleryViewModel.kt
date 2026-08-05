@@ -68,11 +68,20 @@ class GalleryViewModel(
     fun importFolder(uri: String) {
         val folders = _uiState.value.folders
         if (folders.any { it.uri == uri }) {
-            _uiState.update { it.copy(message = "Folder already imported") }
+            // The persisted grant may have been lost (app data restored onto a new
+            // device/ROM, or the user revoked access). The user just re-picked this
+            // folder, so re-taking the permission repairs it instead of blocking.
+            takePersistableUriPermission(uri)
+            _uiState.update { it.copy(message = "Folder already imported — access restored") }
             return
         }
         val name = deriveFolderName(uri)
-        // Persist the SAF grant so the folder survives restarts.
+        takePersistableUriPermission(uri)
+        persistAndSetFolders(addFolder(folders, uri, name) { UUID.randomUUID().toString() })
+    }
+
+    /** Persists the SAF grant so the folder survives restarts. No-op if already held. */
+    private fun takePersistableUriPermission(uri: String) {
         try {
             app.contentResolver.takePersistableUriPermission(
                 Uri.parse(uri),
@@ -81,7 +90,6 @@ class GalleryViewModel(
         } catch (_: Exception) {
             // Grant may already be held; keep importing.
         }
-        persistAndSetFolders(addFolder(folders, uri, name) { UUID.randomUUID().toString() })
     }
 
     fun toggleFolder(id: String) = persistAndSetFolders(toggleFolder(_uiState.value.folders, id))
