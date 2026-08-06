@@ -1,8 +1,11 @@
 package com.lvlh2.randomgallery.ui
 
+import android.Manifest
 import android.app.Application
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.DocumentsContract
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -14,6 +17,7 @@ import com.lvlh2.randomgallery.data.removeFolder
 import com.lvlh2.randomgallery.data.toggleFolder
 import com.lvlh2.randomgallery.model.ImageItem
 import com.lvlh2.randomgallery.model.SavedFolder
+import com.lvlh2.randomgallery.util.applyScanResult
 import com.lvlh2.randomgallery.util.deriveFolderName
 import com.lvlh2.randomgallery.util.fisherYatesShuffle
 import kotlinx.coroutines.Dispatchers
@@ -51,13 +55,20 @@ class GalleryViewModel(
 
     init {
         _uiState.update { it.copy(folders = folderStore.load()) }
-        reload()
+        if (hasMediaPermission()) {
+            reload()
+        } else {
+            _uiState.update { it.copy(loading = false, error = MEDIA_PERMISSION_MESSAGE) }
+        }
     }
 
     /** Called on activity ON_RESUME: re-scan, but deferred while the viewer is open. */
     fun onAppResume() {
         if (_uiState.value.screen is Screen.Viewer) {
             pendingReloadAfterViewer = true
+        } else if (reloadJob?.isActive == true) {
+            // A scan is already in flight (e.g. the init scan right after cold
+            // start) — it covers this resume, don't start a duplicate.
         } else {
             reload()
         }
@@ -65,7 +76,20 @@ class GalleryViewModel(
 
     private var pendingReloadAfterViewer = false
 
+    /** Result of the runtime media-permission request (one dialog per install). */
+    fun onMediaPermissionResult(granted: Boolean) {
+        if (granted) {
+            reload()
+        } else {
+            _uiState.update { it.copy(loading = false, error = MEDIA_PERMISSION_MESSAGE) }
+        }
+    }
+
     fun importFolder(uri: String) {
+        if (!imageRepository.isMappable(uri)) {
+            _uiState.update { it.copy(message = UNSUPPORTED_FOLDER_MESSAGE) }
+            return
+        }
         val folders = _uiState.value.folders
         if (folders.any { it.uri == uri }) {
             // The persisted grant may have been lost (app data restored onto a new
@@ -148,10 +172,44 @@ class GalleryViewModel(
             viewModelScope.launch {
                 _uiState.update { it.copy(loading = true, error = null) }
                 val enabled = _uiState.value.folders.filter { it.enabled }
-                val images = imageRepository.enumerate(enabled)
+                val result = imageRepository.enumerate(enabled)
+                val images = applyScanResult(_uiState.value.images, result.images)
+                val unsupportedMessage =
+                    result.unsupportedFolders
+                        .takeIf { it.isNotEmpty() && it.toSet() != lastUnsupportedNames }
+                        ?.let { UNSUPPORTED_FOLDER_MESSAGE }
+                lastUnsupportedNames = result.unsupportedFolders.toSet()
                 _uiState.update {
-                    it.copy(loading = false, error = null, images = fisherYatesShuffle(images))
+                    it.copy(
+                        loading = false,
+                        error = null,
+                        images = images,
+                        message = it.message ?: unsupportedMessage,
+                    )
                 }
             }
+    }
+
+    /** Only surface the unsupported-folder message when the affected set changes. */
+    private var lastUnsupportedNames: Set<String> = emptySet()
+
+    fun hasMediaPermission(): Boolean = app.checkSelfPermission(mediaPermission) == PackageManager.PERMISSION_GRANTED
+
+    companion object {
+        /** Message shown when the runtime media permission is missing (or refused). */
+        const val MEDIA_PERMISSION_MESSAGE = "Media access permission is needed to browse images."
+
+        /** Message for folders that can't be mapped to the MediaStore index. */
+        const val UNSUPPORTED_FOLDER_MESSAGE =
+            "Unsupported folder — only folders inside internal storage are supported."
+
+        /** READ_MEDIA_IMAGES on Android 13+, the legacy storage permission below. */
+        val mediaPermission: String
+            get() =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    Manifest.permission.READ_MEDIA_IMAGES
+                } else {
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                }
     }
 }

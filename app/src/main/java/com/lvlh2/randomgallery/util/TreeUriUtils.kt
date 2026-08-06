@@ -27,3 +27,27 @@ fun deriveFolderName(uriString: String): String {
     val name = path.substringAfterLast('/')
     return name.ifBlank { "Folder" }
 }
+
+/**
+ * MediaStore RELATIVE_PATH for a tree document id on the internal "primary"
+ * volume, e.g. "primary:DCIM/Camera" → "DCIM/Camera/" (MediaStore paths carry
+ * a trailing slash). Returns null for anything else — SD-card volumes, other
+ * volumes, or the volume root itself — which cannot be mapped to MediaStore.
+ */
+fun primaryVolumeRelativePath(docId: String): String? {
+    val prefix = "primary:"
+    if (!docId.startsWith(prefix)) return null
+    val path = docId.removePrefix(prefix)
+    if (path.isBlank()) return null
+    return path.trimEnd('/') + "/"
+}
+
+/**
+ * Rebuilds the tree document id for one file from its MediaStore path and
+ * display name: "primary:" + RELATIVE_PATH + name. Inverse of
+ * [primaryVolumeRelativePath].
+ */
+fun primaryDocId(
+    relativePath: String,
+    displayName: String,
+): String = "primary:" + relativePath.trimEnd('/') + "/" + displayName

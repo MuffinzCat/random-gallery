@@ -57,8 +57,22 @@ fun RandomGalleryApp(viewModel: GalleryViewModel = viewModel()) {
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
+        // MediaStore enumeration needs one runtime permission — ask once at launch.
+        val permissionLauncher =
+            rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                viewModel.onMediaPermissionResult(granted)
+            }
+        LaunchedEffect(Unit) {
+            if (!viewModel.hasMediaPermission()) {
+                permissionLauncher.launch(GalleryViewModel.mediaPermission)
+            }
+        }
+
         when (val screen = state.screen) {
-            is Screen.Tabs -> TabScaffold(viewModel, state)
+            is Screen.Tabs ->
+                TabScaffold(viewModel, state, onRetryPermission = {
+                    permissionLauncher.launch(GalleryViewModel.mediaPermission)
+                })
             is Screen.Viewer -> ViewerScreen(viewModel, screen.index)
         }
     }
@@ -68,6 +82,7 @@ fun RandomGalleryApp(viewModel: GalleryViewModel = viewModel()) {
 private fun TabScaffold(
     viewModel: GalleryViewModel,
     state: GalleryViewModel.GalleryUiState,
+    onRetryPermission: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(AppTab.RANDOM) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -118,7 +133,15 @@ private fun TabScaffold(
         },
     ) { padding ->
         when (tab) {
-            AppTab.RANDOM -> RandomScreen(viewModel, state, gridState, Modifier.padding(padding))
+            AppTab.RANDOM ->
+                RandomScreen(
+                    viewModel,
+                    state,
+                    gridState,
+                    onRetryPermission = onRetryPermission,
+                    modifier = Modifier.padding(padding),
+                )
+
             AppTab.FOLDERS ->
                 FoldersScreen(
                     viewModel,
