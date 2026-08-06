@@ -29,8 +29,8 @@ Edit **only** `versionCode` and `versionName` in `app/build.gradle.kts` (single 
 
 | Field         | Value |
 | ------------- | ----- |
-| `versionCode` | 20    |
-| `versionName` | 2.0.0 |
+| `versionCode` | 21    |
+| `versionName` | 2.1.0 |
 
 (The old app required manually syncing THREE values across app.json / android build.gradle, and `expo prebuild` silently reset versionCode to 1 — that failure mode no longer exists.)
 
