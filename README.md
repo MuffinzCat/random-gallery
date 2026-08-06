@@ -25,7 +25,7 @@ Download the APK, install it on your Android device, and start browsing.
 |                           |                                                                          |
 | ------------------------- | ------------------------------------------------------------------------ |
 | 🔀 **Random shuffle**     | All photos shuffled once; tap ↻ to reshuffle                             |
-| 📁 **Folder import**      | Pick folders via Android SAF                                             |
+| 📁 **Folder import**      | Pick folders (internal storage) via Android SAF                          |
 | ✅ **Selective browsing** | Toggle folders on/off with checkboxes                                    |
 | 🔍 **Full-screen viewer** | Pinch to zoom, swipe to navigate, swipe up to delete, swipe down to exit |
 
@@ -39,10 +39,11 @@ Download the APK, install it on your Android device, and start browsing.
 ## How It Works
 
 1. Open the **Folders** tab and tap "Import Folder" to pick a photo folder
+   (only folders inside internal storage — e.g. Pictures, DCIM — are supported)
 2. Use checkboxes to choose which folders to include
 3. Switch to the **Random** tab — your photos appear in shuffled order
 4. Tap ↻ in the bottom-right to reshuffle at any time
 5. Tap any thumbnail to view it full-screen
 6. Swipe up to delete, swipe down to exit the viewer
 
-Images are read directly from their source folders via MediaStore and SAF. The app never copies or moves your files.
+Images are read directly from their source folders via MediaStore and SAF. The app never copies or moves your files. On first launch the app asks for one media-access permission — it is only used to read the photo index, and can be re-granted from the error screen if denied.
