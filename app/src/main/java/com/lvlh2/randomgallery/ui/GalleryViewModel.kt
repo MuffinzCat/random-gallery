@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.provider.DocumentsContract
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lvlh2.randomgallery.data.FolderStore
@@ -20,14 +19,12 @@ import com.lvlh2.randomgallery.model.SavedFolder
 import com.lvlh2.randomgallery.util.applyScanResult
 import com.lvlh2.randomgallery.util.deriveFolderName
 import com.lvlh2.randomgallery.util.fisherYatesShuffle
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -160,28 +157,17 @@ class GalleryViewModel(
         _uiState.update { it.copy(message = null) }
     }
 
-    /** Permanently deletes the image file; removes it from the list only on success. */
-    suspend fun deleteImage(item: ImageItem): Boolean {
-        val deleted =
-            try {
-                withContext(Dispatchers.IO) {
-                    DocumentsContract.deleteDocument(app.contentResolver, Uri.parse(item.uri))
-                }
-            } catch (_: Exception) {
-                false
+    /** Removes an image from app state after Android confirms it was moved to trash. */
+    fun removeTrashedImage(item: ImageItem) {
+        _uiState.update { state ->
+            val remainingImages = state.images.filterNot { image -> image.uri == item.uri }
+            if (currentViewerImageUri == item.uri) {
+                val survivingIndex = returnIndexForImage(null, currentViewerIndex, remainingImages.map { it.uri })
+                currentViewerIndex = survivingIndex ?: 0
+                currentViewerImageUri = survivingIndex?.let { remainingImages[it].uri }
             }
-        if (deleted) {
-            _uiState.update { state ->
-                val remainingImages = state.images.filterNot { image -> image.uri == item.uri }
-                if (currentViewerImageUri == item.uri) {
-                    val survivingIndex = returnIndexForImage(null, currentViewerIndex, remainingImages.map { it.uri })
-                    currentViewerIndex = survivingIndex ?: 0
-                    currentViewerImageUri = survivingIndex?.let { remainingImages[it].uri }
-                }
-                state.copy(images = remainingImages)
-            }
+            state.copy(images = remainingImages)
         }
-        return deleted
     }
 
     private fun persistAndSetFolders(folders: List<SavedFolder>) {

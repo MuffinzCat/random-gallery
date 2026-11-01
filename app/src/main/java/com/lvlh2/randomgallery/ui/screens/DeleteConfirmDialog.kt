@@ -12,9 +12,9 @@ fun DeleteConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete image?") },
-        text = { Text("This permanently deletes the file. This action cannot be undone.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Delete") } },
+        title = { Text("Move image to trash?") },
+        text = { Text("The image will be moved to the Android media trash and can be restored later.") },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Move to trash") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }

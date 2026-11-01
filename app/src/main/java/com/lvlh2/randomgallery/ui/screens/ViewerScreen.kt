@@ -1,5 +1,12 @@
 package com.lvlh2.randomgallery.ui.screens
 
+import android.app.Activity
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +26,9 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lvlh2.randomgallery.model.ImageItem
 import com.lvlh2.randomgallery.ui.GalleryViewModel
 import com.lvlh2.randomgallery.ui.nextIndexAfterDelete
 import kotlinx.coroutines.launch
@@ -29,6 +38,7 @@ fun ViewerScreen(
     viewModel: GalleryViewModel,
     initialIndex: Int,
 ) {
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val images = state.images
     val snackbarHostState = remember { SnackbarHostState() }
@@ -40,27 +50,83 @@ fun ViewerScreen(
             initialPage = initialIndex.coerceIn(0, (images.size - 1).coerceAtLeast(0)),
         ) { images.size }
 
+    var pendingTrashItem by remember { mutableStateOf<ImageItem?>(null) }
+    var pendingTrashIndex by remember { mutableStateOf(-1) }
+    var pendingTrashSize by remember { mutableStateOf(0) }
+
+    val trashLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            val item = pendingTrashItem
+            val index = pendingTrashIndex
+            val size = pendingTrashSize
+
+            pendingTrashItem = null
+            pendingTrashIndex = -1
+            pendingTrashSize = 0
+
+            if (result.resultCode == Activity.RESULT_OK && item != null) {
+                scope.launch {
+                    val next = nextIndexAfterDelete(index, size)
+                    if (index == size - 1 && size > 1) {
+                        pagerState.animateScrollToPage(next)
+                    }
+                    viewModel.removeTrashedImage(item)
+                    if (size == 1) {
+                        viewModel.closeViewer()
+                    }
+                }
+            }
+        }
+
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
             viewModel.updateViewerPosition(page)
         }
     }
 
-    fun confirmDelete() {
-        val idx = pagerState.currentPage
-        if (idx !in images.indices) return
-        val next = nextIndexAfterDelete(idx, images.size)
-        scope.launch {
-            // ★ 4d3c1c8 fix: scroll BEFORE the list shrinks so the pager never points
-            //   past the end (that is what froze the old RN gallery).
-            if (idx == images.lastIndex && images.size > 1) {
-                pagerState.animateScrollToPage(next)
+    fun requestTrash() {
+        val index = pagerState.currentPage
+        val item = images.getOrNull(index) ?: return
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            scope.launch {
+                snackbarHostState.showSnackbar("Moving images to trash requires Android 11 or newer")
             }
-            val deleted = viewModel.deleteImage(images[idx])
-            if (!deleted) {
-                snackbarHostState.showSnackbar("Could not delete image")
-            } else if (images.size == 1) {
-                viewModel.closeViewer() // deleted the only image → grid shows its empty state
+            return
+        }
+
+        val mediaUri =
+            try {
+                MediaStore.getMediaUri(context, Uri.parse(item.uri))?.let { fileUri ->
+                    val mediaId = fileUri.lastPathSegment?.toLongOrNull()
+                    mediaId?.let {
+                        MediaStore.Images.Media.getContentUri(MediaStore.getVolumeName(fileUri), it)
+                    }
+                }
+            } catch (_: Exception) {
+                null
+            }
+
+        if (mediaUri == null) {
+            scope.launch {
+                snackbarHostState.showSnackbar("This image could not be matched to the Android media trash")
+            }
+            return
+        }
+
+        pendingTrashItem = item
+        pendingTrashIndex = index
+        pendingTrashSize = images.size
+
+        try {
+            val request = MediaStore.createTrashRequest(context.contentResolver, listOf(mediaUri), true)
+            trashLauncher.launch(IntentSenderRequest.Builder(request.intentSender).build())
+        } catch (_: Exception) {
+            pendingTrashItem = null
+            pendingTrashIndex = -1
+            pendingTrashSize = 0
+            scope.launch {
+                snackbarHostState.showSnackbar("Could not open the Android trash request")
             }
         }
     }
@@ -88,7 +154,7 @@ fun ViewerScreen(
         DeleteConfirmDialog(
             onConfirm = {
                 showConfirm = false
-                confirmDelete()
+                requestTrash()
             },
             onDismiss = { showConfirm = false },
         )
