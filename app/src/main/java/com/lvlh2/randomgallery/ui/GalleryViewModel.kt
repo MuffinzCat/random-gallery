@@ -45,6 +45,7 @@ class GalleryViewModel(
         val error: String? = null,
         val message: String? = null,
         val screen: Screen = Screen.Tabs,
+        val returnToImageIndex: Int? = null,
     )
 
     private val _uiState = MutableStateFlow(GalleryUiState())
@@ -75,6 +76,8 @@ class GalleryViewModel(
     }
 
     private var pendingReloadAfterViewer = false
+    private var currentViewerImageUri: String? = null
+    private var currentViewerIndex: Int = 0
 
     /** Result of the runtime media-permission request (one dialog per install). */
     fun onMediaPermissionResult(granted: Boolean) {
@@ -126,16 +129,31 @@ class GalleryViewModel(
     }
 
     fun openViewer(index: Int) {
-        if (index !in _uiState.value.images.indices) return
-        _uiState.update { it.copy(screen = Screen.Viewer(index)) }
+        val item = _uiState.value.images.getOrNull(index) ?: return
+        currentViewerImageUri = item.uri
+        currentViewerIndex = index
+        _uiState.update { it.copy(screen = Screen.Viewer(index), returnToImageIndex = null) }
+    }
+
+    fun updateViewerPosition(index: Int) {
+        val item = _uiState.value.images.getOrNull(index) ?: return
+        currentViewerImageUri = item.uri
+        currentViewerIndex = index
     }
 
     fun closeViewer() {
-        _uiState.update { it.copy(screen = Screen.Tabs) }
+        val images = _uiState.value.images
+        val returnIndex = returnIndexForImage(currentViewerImageUri, currentViewerIndex, images.map { it.uri })
+        _uiState.update { it.copy(screen = Screen.Tabs, returnToImageIndex = returnIndex) }
+        currentViewerImageUri = null
         if (pendingReloadAfterViewer) {
             pendingReloadAfterViewer = false
             reload()
         }
+    }
+
+    fun consumeReturnToImage() {
+        _uiState.update { it.copy(returnToImageIndex = null) }
     }
 
     fun clearMessage() {
@@ -153,7 +171,15 @@ class GalleryViewModel(
                 false
             }
         if (deleted) {
-            _uiState.update { it.copy(images = it.images.filterNot { image -> image.uri == item.uri }) }
+            _uiState.update { state ->
+                val remainingImages = state.images.filterNot { image -> image.uri == item.uri }
+                if (currentViewerImageUri == item.uri) {
+                    val survivingIndex = returnIndexForImage(null, currentViewerIndex, remainingImages.map { it.uri })
+                    currentViewerIndex = survivingIndex ?: 0
+                    currentViewerImageUri = survivingIndex?.let { remainingImages[it].uri }
+                }
+                state.copy(images = remainingImages)
+            }
         }
         return deleted
     }

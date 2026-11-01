@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -44,6 +45,17 @@ import kotlinx.coroutines.launch
 fun RandomGalleryApp(viewModel: GalleryViewModel = viewModel()) {
     RandomGalleryTheme {
         val state by viewModel.uiState.collectAsStateWithLifecycle()
+        val gridState = rememberLazyGridState()
+
+        LaunchedEffect(state.screen, state.returnToImageIndex) {
+            val returnIndex = state.returnToImageIndex
+            if (state.screen is Screen.Tabs && returnIndex != null) {
+                if (returnIndex in state.images.indices) {
+                    gridState.scrollToItem(returnIndex)
+                }
+                viewModel.consumeReturnToImage()
+            }
+        }
         BackHandler(enabled = state.screen is Screen.Viewer) { viewModel.closeViewer() }
 
         // Re-scan on return to the app (new photos appear); deferred while the viewer is open.
@@ -70,7 +82,7 @@ fun RandomGalleryApp(viewModel: GalleryViewModel = viewModel()) {
 
         when (val screen = state.screen) {
             is Screen.Tabs ->
-                TabScaffold(viewModel, state, onRetryPermission = {
+                TabScaffold(viewModel, state, gridState, onRetryPermission = {
                     permissionLauncher.launch(GalleryViewModel.mediaPermission)
                 })
             is Screen.Viewer -> ViewerScreen(viewModel, screen.index)
@@ -82,11 +94,11 @@ fun RandomGalleryApp(viewModel: GalleryViewModel = viewModel()) {
 private fun TabScaffold(
     viewModel: GalleryViewModel,
     state: GalleryViewModel.GalleryUiState,
+    gridState: LazyGridState,
     onRetryPermission: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(AppTab.RANDOM) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(state.message) {

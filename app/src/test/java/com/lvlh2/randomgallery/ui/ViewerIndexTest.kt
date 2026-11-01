@@ -42,4 +42,29 @@ class ViewerIndexTest {
             }
         }
     }
+
+    @Test
+    fun `return target follows the viewed URI when it still exists`() {
+        assertEquals(2, returnIndexForImage("uri-c", 0, listOf("uri-a", "uri-b", "uri-c")))
+    }
+
+    @Test
+    fun `return target uses the fallback index when viewed image was deleted`() {
+        assertEquals(1, returnIndexForImage("uri-deleted", 1, listOf("uri-a", "uri-c")))
+    }
+
+    @Test
+    fun `return target clamps a deleted last image to the new last index`() {
+        assertEquals(1, returnIndexForImage("uri-deleted", 2, listOf("uri-a", "uri-b")))
+    }
+
+    @Test
+    fun `return target clamps a negative fallback to the first image`() {
+        assertEquals(0, returnIndexForImage(null, -1, listOf("uri-a", "uri-b")))
+    }
+
+    @Test
+    fun `return target is absent when no images survive`() {
+        assertEquals(null, returnIndexForImage("uri-a", 0, emptyList()))
+    }
 }
