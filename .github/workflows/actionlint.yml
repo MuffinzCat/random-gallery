@@ -50,4 +50,5 @@ jobs:
           "$RUNNER_TEMP/actionlint" -version
 
       - name: Validate workflows
-        run: "$RUNNER_TEMP/actionlint" -color
+        run: |
+          "$RUNNER_TEMP/actionlint" -color
