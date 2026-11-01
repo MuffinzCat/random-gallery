@@ -58,6 +58,7 @@ jobs:
         id: version
         env:
           INPUT_TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             TAG="$INPUT_TAG"
@@ -90,20 +91,35 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "apk=random-gallery-muffin-${VERSION}.apk" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+              echo "Release $TAG already exists; no new app version to publish."
+              echo "should_release=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Release $TAG already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
 
       - name: Unit tests
+        if: steps.version.outputs.should_release == 'true'
         run: ./gradlew app:testDebugUnitTest --console=plain
 
       - name: Kotlin style check
+        if: steps.version.outputs.should_release == 'true'
         run: ./gradlew app:ktlintCheck --console=plain
 
       - name: Android lint
+        if: steps.version.outputs.should_release == 'true'
         run: ./gradlew app:lintDebug --console=plain
 
       - name: Build release APK
+        if: steps.version.outputs.should_release == 'true'
         run: ./gradlew app:assembleRelease --console=plain
 
       - name: Prepare release assets
+        if: steps.version.outputs.should_release == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           APK_NAME: ${{ steps.version.outputs.apk }}
@@ -113,6 +129,7 @@ jobs:
           sha256sum "release/$APK_NAME" > "release/$APK_NAME.sha256"
 
       - name: Verify release APK metadata
+        if: steps.version.outputs.should_release == 'true'
         env:
           VERSION: ${{ steps.version.outputs.version }}
           APK_NAME: ${{ steps.version.outputs.apk }}
@@ -126,11 +143,13 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs "release/$APK_NAME"
 
       - name: Generate build provenance
+        if: steps.version.outputs.should_release == 'true'
         uses: actions/attest@v4
         with:
           subject-path: release/${{ steps.version.outputs.apk }}
 
       - name: Create GitHub Release
+        if: steps.version.outputs.should_release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -138,14 +157,6 @@ jobs:
           APK_NAME: ${{ steps.version.outputs.apk }}
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-              echo "Release $TAG already exists; this commit does not introduce a new app version."
-              exit 0
-            fi
-            echo "Release $TAG already exists; refusing to overwrite it." >&2
-            exit 1
-          fi
           ARGS=("$TAG" "release/$APK_NAME" "release/$APK_NAME.sha256" "--title" "Random Gallery Muffin $VERSION" "--generate-notes" "--target" "$GITHUB_SHA")
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "$PRERELEASE" == "true" ]]; then
             ARGS+=("--prerelease")
