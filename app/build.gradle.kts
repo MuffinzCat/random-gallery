@@ -13,11 +13,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.lvlh2.randomgallery"
+        applicationId = "com.muffinzcat.randomgallery"
         minSdk = 24
         targetSdk = 36
         versionCode = 21
-        versionName = "2.1.0"
+        versionName = "2.1.0-muffin.1"
     }
 
     // One keystore for BOTH variants — mirrors the old Expo build, where the release
@@ -68,7 +68,7 @@ android {
         onVariants { variant ->
             variant.outputs.forEach { output ->
                 (output as com.android.build.api.variant.impl.VariantOutputImpl)
-                    .outputFileName = "random-gallery.apk"
+                    .outputFileName = "random-gallery-muffin.apk"
             }
         }
     }
