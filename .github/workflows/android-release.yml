@@ -139,6 +139,10 @@ jobs:
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
+            if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+              echo "Release $TAG already exists; this commit does not introduce a new app version."
+              exit 0
+            fi
             echo "Release $TAG already exists; refusing to overwrite it." >&2
             exit 1
           fi
