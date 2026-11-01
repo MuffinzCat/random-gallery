@@ -6,8 +6,7 @@ on:
     - cron: '23 5 * * *'
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 concurrency:
   group: upstream-integration
@@ -15,7 +14,7 @@ concurrency:
 
 jobs:
   integrate:
-    name: Integrate and validate upstream release
+    name: Prepare upstream release integration
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
@@ -91,7 +90,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c automation/upstream-sync
+          git switch -C automation/upstream-sync
           if ! git merge --no-edit "$UPSTREAM_REF"; then
             git merge --abort || true
             echo "Upstream release has merge conflicts. muffin-fork was not changed." >&2
@@ -146,33 +145,42 @@ jobs:
           EXPECTED_BASE=$(git merge-base automation/upstream-sync origin/muffin-fork)
           CURRENT_HEAD=$(git rev-parse origin/muffin-fork)
           if [[ "$EXPECTED_BASE" != "$CURRENT_HEAD" ]]; then
-            echo "muffin-fork moved while integration was running; refusing to overwrite newer work." >&2
+            echo "muffin-fork moved while integration was running; refusing to publish stale integration." >&2
             exit 1
           fi
 
-      - name: Publish validated upstream integration
+      - name: Publish validated integration branch
         if: steps.upstream.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.UPSTREAM_PR_TOKEN }}
         run: |
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push origin automation/upstream-sync:muffin-fork
+          git fetch origin automation/upstream-sync:refs/remotes/origin/automation/upstream-sync 2>/dev/null || true
+          git push --force-with-lease origin automation/upstream-sync
 
-      - name: Create verified Android release
+      - name: Create or update upstream integration pull request
         if: steps.upstream.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run android-release.yml --ref muffin-fork -f tag="v$NEW_VERSION" -f prerelease=false
+          GH_TOKEN: ${{ secrets.UPSTREAM_PR_TOKEN }}
+          UPSTREAM_TAG: ${{ steps.upstream.outputs.upstream_tag }}
+        run: |
+          EXISTING_PR=$(gh pr list --base muffin-fork --head automation/upstream-sync --state open --json number --jq '.[0].number // empty')
+          if [[ -n "$EXISTING_PR" ]]; then
+            echo "Updated existing upstream integration PR #$EXISTING_PR."
+          else
+            printf -v PR_BODY 'Automated integration of upstream Random Gallery release %s.\n\nThe integration branch was created from muffin-fork, merged with the exact upstream release tag, versioned as %s, and passed the upstream integration pre-validation workflow. Final PR checks must pass before merge.' "$UPSTREAM_TAG" "$NEW_VERSION"
+            gh pr create --base muffin-fork --head automation/upstream-sync --title "chore: integrate upstream $UPSTREAM_TAG" --body "$PR_BODY"
+          fi
 
       - name: Summary
         if: always()
         run: |
+          echo "### Upstream integration" >> "$GITHUB_STEP_SUMMARY"
           if [[ "${{ steps.upstream.outputs.changed }}" == "true" ]]; then
-            echo "### Upstream integration" >> "$GITHUB_STEP_SUMMARY"
             echo "- Upstream release: ${{ steps.upstream.outputs.upstream_tag }}" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Muffin release: $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Muffin candidate: $NEW_VERSION" >> "$GITHUB_STEP_SUMMARY"
             echo "- Android versionCode: $NEW_CODE" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Result: integration branch pushed and pull request created or updated." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "### Upstream integration" >> "$GITHUB_STEP_SUMMARY"
-            echo "Latest upstream release is already integrated." >> "$GITHUB_STEP_SUMMARY"
+            echo "- Result: latest upstream release is already integrated." >> "$GITHUB_STEP_SUMMARY"
           fi
