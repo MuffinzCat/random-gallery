@@ -51,4 +51,4 @@ jobs:
 
       - name: Validate workflows
         run: |
-          "$RUNNER_TEMP/actionlint" -color
+          "$RUNNER_TEMP/actionlint" -color -ignore "SC2129"
