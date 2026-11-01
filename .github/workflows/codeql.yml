@@ -52,7 +52,7 @@ jobs:
           queries: security-extended
 
       - name: Build application for CodeQL
-        run: ./gradlew app:assembleDebug --console=plain
+        run: ./gradlew clean app:assembleDebug --no-build-cache --rerun-tasks --no-daemon --console=plain
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v4
