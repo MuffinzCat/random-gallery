@@ -46,7 +46,7 @@ class ImageRepository(
                     continue
                 }
                 try {
-                    queryViaMediaStore(treeUri, docId, items, seen)
+                    queryViaMediaStore(treeUri, docId, folder.id, items, seen)
                 } catch (_: Exception) {
                     // skip folder, keep it listed — old app behavior
                 }
@@ -67,6 +67,7 @@ class ImageRepository(
     private fun queryViaMediaStore(
         treeUri: Uri,
         docId: String,
+        sourceFolderId: String,
         out: MutableList<ImageItem>,
         seen: MutableSet<String>,
     ) {
@@ -94,7 +95,7 @@ class ImageRepository(
                     val name = cursor.getString(nameCol) ?: continue
                     if (!isImageFile(name)) continue
                     val uri = buildDocumentUri(treeUri, primaryDocId(relativePath, name))
-                    if (seen.add(uri)) out += ImageItem(uri = uri, name = name)
+                    if (seen.add(uri)) out += ImageItem(uri = uri, name = name, sourceFolderId = sourceFolderId)
                 }
             }
     }
