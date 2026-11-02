@@ -4,4 +4,5 @@ package com.lvlh2.randomgallery.model
 data class ImageItem(
     val uri: String,
     val name: String,
+    val sourceFolderId: String? = null,
 )

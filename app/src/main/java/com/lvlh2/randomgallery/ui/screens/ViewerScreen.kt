@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -63,6 +64,7 @@ fun ViewerScreen(
     var controlsVisible by remember { mutableStateOf(false) }
     var overflowExpanded by remember { mutableStateOf(false) }
     var imageDetails by remember { mutableStateOf<ImageDetails?>(null) }
+    var excludeFolderTargetId by remember { mutableStateOf<String?>(null) }
 
     val pagerState =
         rememberPagerState(
@@ -318,6 +320,13 @@ fun ViewerScreen(
                                 showCurrentImageInFolder()
                             },
                         )
+                        DropdownMenuItem(
+                            text = { Text("Exclude folder") },
+                            onClick = {
+                                overflowExpanded = false
+                                excludeFolderTargetId = images.getOrNull(pagerState.currentPage)?.sourceFolderId
+                            },
+                        )
                     }
                 }
             }
@@ -373,6 +382,37 @@ fun ViewerScreen(
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
         )
     }
+
+    excludeFolderTargetId
+        ?.let { folderId -> state.folders.firstOrNull { it.id == folderId } }
+        ?.let { folder ->
+            AlertDialog(
+                onDismissRequest = { excludeFolderTargetId = null },
+                title = { Text("Exclude folder?") },
+                text = {
+                    Text(
+                        "Stop showing images from \"${folder.name}\"? " +
+                            "The folder and its files will not be deleted. " +
+                            "You can enable it again from Folders.",
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            excludeFolderTargetId = null
+                            viewModel.excludeFolder(folder.id)
+                        },
+                    ) {
+                        Text("Exclude")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { excludeFolderTargetId = null }) {
+                        Text("Cancel")
+                    }
+                },
+            )
+        }
 
     imageDetails?.let { details ->
         ImageDetailsDialog(

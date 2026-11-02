@@ -118,6 +118,35 @@ class GalleryViewModel(
 
     fun toggleFolder(id: String) = persistAndSetFolders(toggleFolder(_uiState.value.folders, id))
 
+    fun excludeFolder(id: String) {
+        val folders =
+            _uiState.value.folders.map { folder ->
+                if (folder.id == id) folder.copy(enabled = false) else folder
+            }
+        folderStore.save(folders)
+
+        _uiState.update { state ->
+            val remainingImages = state.images.filterNot { it.sourceFolderId == id }
+            if (remainingImages.isEmpty()) {
+                currentViewerImageUri = null
+                currentViewerIndex = 0
+                state.copy(
+                    folders = folders,
+                    images = emptyList(),
+                    screen = Screen.Tabs,
+                    returnToImageIndex = null,
+                )
+            } else {
+                val survivingIndex = currentViewerIndex.coerceIn(0, remainingImages.lastIndex)
+                currentViewerIndex = survivingIndex
+                currentViewerImageUri = remainingImages[survivingIndex].uri
+                state.copy(folders = folders, images = remainingImages)
+            }
+        }
+
+        reload()
+    }
+
     fun removeFolder(id: String) = persistAndSetFolders(removeFolder(_uiState.value.folders, id))
 
     /** Re-shuffles the current list only — no re-scan (old app behavior). */
