@@ -61,6 +61,7 @@ fun ViewerScreen(
     var showConfirm by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(false) }
     var overflowExpanded by remember { mutableStateOf(false) }
+    var imageDetails by remember { mutableStateOf<ImageDetails?>(null) }
 
     val pagerState =
         rememberPagerState(
@@ -231,8 +232,13 @@ fun ViewerScreen(
                     ) {
                         DropdownMenuItem(
                             text = { Text("Details") },
-                            onClick = {},
-                            enabled = false,
+                            onClick = {
+                                overflowExpanded = false
+                                val item = images.getOrNull(pagerState.currentPage) ?: return@DropdownMenuItem
+                                scope.launch {
+                                    imageDetails = loadImageDetails(context, item)
+                                }
+                            },
                         )
                         DropdownMenuItem(
                             text = { Text("Rotate") },
@@ -297,6 +303,13 @@ fun ViewerScreen(
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
+        )
+    }
+
+    imageDetails?.let { details ->
+        ImageDetailsDialog(
+            details = details,
+            onDismiss = { imageDetails = null },
         )
     }
 
