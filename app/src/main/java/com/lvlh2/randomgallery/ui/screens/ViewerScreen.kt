@@ -141,6 +141,25 @@ fun ViewerScreen(
         }
     }
 
+    fun setCurrentImageAs() {
+        val item = images.getOrNull(pagerState.currentPage) ?: return
+        val uri = Uri.parse(item.uri)
+        val mimeType = context.contentResolver.getType(uri) ?: "image/*"
+        val intent =
+            Intent(Intent.ACTION_ATTACH_DATA).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+        if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(Intent.createChooser(intent, "Set image as"))
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("No app was found that can use this image")
+            }
+        }
+    }
+
     fun openCurrentImage() {
         val item = images.getOrNull(pagerState.currentPage) ?: return
         val uri = Uri.parse(item.uri)
@@ -268,8 +287,10 @@ fun ViewerScreen(
                         )
                         DropdownMenuItem(
                             text = { Text("Set as…") },
-                            onClick = {},
-                            enabled = false,
+                            onClick = {
+                                overflowExpanded = false
+                                setCurrentImageAs()
+                            },
                         )
                     }
                 }
