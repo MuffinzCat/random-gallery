@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -57,6 +60,7 @@ fun ViewerScreen(
     val scope = rememberCoroutineScope()
     var showConfirm by remember { mutableStateOf(false) }
     var controlsVisible by remember { mutableStateOf(false) }
+    var overflowExpanded by remember { mutableStateOf(false) }
 
     val pagerState =
         rememberPagerState(
@@ -198,19 +202,51 @@ fun ViewerScreen(
             )
         }
         if (controlsVisible) {
-            Text(
-                text = images.getOrNull(pagerState.currentPage)?.name.orEmpty(),
-                color = Color.White,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier =
                     Modifier
-                        .align(
-                            Alignment.TopCenter,
-                        ).fillMaxWidth()
-                        .background(
-                            Color.Black.copy(alpha = 0.65f),
-                        ).statusBarsPadding()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-            )
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .statusBarsPadding()
+                        .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            ) {
+                Text(
+                    text = images.getOrNull(pagerState.currentPage)?.name.orEmpty(),
+                    color = Color.White,
+                    modifier = Modifier.weight(1f),
+                )
+                Box {
+                    IconButton(onClick = { overflowExpanded = true }) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_more_vert),
+                            contentDescription = "More options",
+                            tint = Color.White,
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = overflowExpanded,
+                        onDismissRequest = { overflowExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Details") },
+                            onClick = {},
+                            enabled = false,
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rotate") },
+                            onClick = {},
+                            enabled = false,
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Set as…") },
+                            onClick = {},
+                            enabled = false,
+                        )
+                    }
+                }
+            }
             Row(
                 modifier =
                     Modifier
