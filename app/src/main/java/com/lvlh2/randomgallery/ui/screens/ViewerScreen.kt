@@ -122,6 +122,25 @@ fun ViewerScreen(
         }
     }
 
+    fun editCurrentImage() {
+        val item = images.getOrNull(pagerState.currentPage) ?: return
+        val uri = Uri.parse(item.uri)
+        val mimeType = context.contentResolver.getType(uri) ?: "image/*"
+        val intent =
+            Intent(Intent.ACTION_EDIT).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+
+        if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(Intent.createChooser(intent, "Edit with"))
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("No app was found that can edit this image")
+            }
+        }
+    }
+
     fun openCurrentImage() {
         val item = images.getOrNull(pagerState.currentPage) ?: return
         val uri = Uri.parse(item.uri)
@@ -241,9 +260,11 @@ fun ViewerScreen(
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text("Rotate") },
-                            onClick = {},
-                            enabled = false,
+                            text = { Text("Edit with…") },
+                            onClick = {
+                                overflowExpanded = false
+                                editCurrentImage()
+                            },
                         )
                         DropdownMenuItem(
                             text = { Text("Set as…") },
