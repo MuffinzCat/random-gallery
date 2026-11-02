@@ -11,6 +11,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -93,6 +94,26 @@ fun ViewerScreen(
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
             viewModel.updateViewerPosition(page)
+        }
+    }
+
+    fun shareCurrentImage() {
+        val item = images.getOrNull(pagerState.currentPage) ?: return
+        val uri = Uri.parse(item.uri)
+        val mimeType = context.contentResolver.getType(uri) ?: "image/*"
+        val intent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+        try {
+            context.startActivity(Intent.createChooser(intent, "Share image"))
+        } catch (_: ActivityNotFoundException) {
+            scope.launch {
+                snackbarHostState.showSnackbar("No app was found that can share this image")
+            }
         }
     }
 
@@ -190,23 +211,39 @@ fun ViewerScreen(
                         ).statusBarsPadding()
                         .padding(horizontal = 20.dp, vertical = 16.dp),
             )
-            TextButton(
-                onClick = { openCurrentImage() },
+            Row(
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .background(Color.Black.copy(alpha = 0.65f))
                         .navigationBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_open_with),
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.padding(end = 8.dp),
-                )
-                Text("Open with…", color = Color.White)
+                TextButton(
+                    onClick = { shareCurrentImage() },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_share),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text("Share", color = Color.White)
+                }
+                TextButton(
+                    onClick = { openCurrentImage() },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_open_with),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text("Open with…", color = Color.White)
+                }
             }
         }
         SnackbarHost(
