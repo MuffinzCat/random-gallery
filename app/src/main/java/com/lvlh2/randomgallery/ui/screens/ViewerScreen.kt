@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -160,6 +161,24 @@ fun ViewerScreen(
         }
     }
 
+    fun showCurrentImageInFolder() {
+        val uri = Uri.parse(images.getOrNull(pagerState.currentPage)?.uri ?: return)
+        val intent =
+            Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                type = "image/*"
+                addCategory(Intent.CATEGORY_OPENABLE)
+                putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
+            }
+
+        try {
+            context.startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            scope.launch {
+                snackbarHostState.showSnackbar("No file browser was found that can show this folder")
+            }
+        }
+    }
+
     fun openCurrentImage() {
         val item = images.getOrNull(pagerState.currentPage) ?: return
         val uri = Uri.parse(item.uri)
@@ -290,6 +309,13 @@ fun ViewerScreen(
                             onClick = {
                                 overflowExpanded = false
                                 setCurrentImageAs()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Show folder") },
+                            onClick = {
+                                overflowExpanded = false
+                                showCurrentImageInFolder()
                             },
                         )
                     }
