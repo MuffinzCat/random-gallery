@@ -244,6 +244,18 @@ fun ViewerScreen(
                     )
                     Text("Open with…", color = Color.White)
                 }
+                TextButton(
+                    onClick = { showConfirm = true },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_delete),
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text("Delete", color = Color.White)
+                }
             }
         }
         SnackbarHost(
