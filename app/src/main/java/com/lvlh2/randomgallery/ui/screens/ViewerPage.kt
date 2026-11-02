@@ -34,6 +34,7 @@ import me.saket.telephoto.zoomable.rememberZoomableImageState
 @Composable
 fun ViewerPage(
     item: ImageItem,
+    onTap: () -> Unit,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ) {
@@ -92,6 +93,7 @@ fun ViewerPage(
             contentDescription = item.name,
             state = zoomState,
             contentScale = ContentScale.Fit,
+            onClick = { onTap() },
             modifier = Modifier.fillMaxSize().graphicsLayer { translationY = dragOffset.value },
         )
     }

@@ -1,6 +1,8 @@
 package com.lvlh2.randomgallery.ui.screens
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -10,11 +12,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,7 +35,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lvlh2.randomgallery.R
 import com.lvlh2.randomgallery.model.ImageItem
 import com.lvlh2.randomgallery.ui.GalleryViewModel
 import com.lvlh2.randomgallery.ui.nextIndexAfterDelete
@@ -44,6 +55,7 @@ fun ViewerScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var showConfirm by remember { mutableStateOf(false) }
+    var controlsVisible by remember { mutableStateOf(false) }
 
     val pagerState =
         rememberPagerState(
@@ -81,6 +93,25 @@ fun ViewerScreen(
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { page ->
             viewModel.updateViewerPosition(page)
+        }
+    }
+
+    fun openCurrentImage() {
+        val item = images.getOrNull(pagerState.currentPage) ?: return
+        val uri = Uri.parse(item.uri)
+        val mimeType = context.contentResolver.getType(uri) ?: "image/*"
+        val intent =
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+        try {
+            context.startActivity(Intent.createChooser(intent, "Open with"))
+        } catch (_: ActivityNotFoundException) {
+            scope.launch {
+                snackbarHostState.showSnackbar("No app was found that can open this image")
+            }
         }
     }
 
@@ -140,9 +171,43 @@ fun ViewerScreen(
             val item = images.getOrNull(page) ?: return@HorizontalPager
             ViewerPage(
                 item = item,
+                onTap = { controlsVisible = !controlsVisible },
                 onSwipeUp = { showConfirm = true },
                 onSwipeDown = { viewModel.closeViewer() },
             )
+        }
+        if (controlsVisible) {
+            Text(
+                text = images.getOrNull(pagerState.currentPage)?.name.orEmpty(),
+                color = Color.White,
+                modifier =
+                    Modifier
+                        .align(
+                            Alignment.TopCenter,
+                        ).fillMaxWidth()
+                        .background(
+                            Color.Black.copy(alpha = 0.65f),
+                        ).statusBarsPadding()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+            )
+            TextButton(
+                onClick = { openCurrentImage() },
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .navigationBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_open_with),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+                Text("Open with…", color = Color.White)
+            }
         }
         SnackbarHost(
             hostState = snackbarHostState,
