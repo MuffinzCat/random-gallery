@@ -67,21 +67,21 @@ fun RandomGalleryApp(viewModel: GalleryViewModel = viewModel()) {
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
-        // MediaStore enumeration needs one runtime permission — ask once at launch.
+        // Request the media permissions needed for MediaStore enumeration at launch.
         val permissionLauncher =
-            rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-                viewModel.onMediaPermissionResult(granted)
+            rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+                viewModel.onMediaPermissionResult(grants.values.any { it })
             }
         LaunchedEffect(Unit) {
             if (!viewModel.hasMediaPermission()) {
-                permissionLauncher.launch(GalleryViewModel.mediaPermission)
+                permissionLauncher.launch(GalleryViewModel.mediaPermissions)
             }
         }
 
         when (val screen = state.screen) {
             is Screen.Tabs ->
                 TabScaffold(viewModel, state, gridState, onRetryPermission = {
-                    permissionLauncher.launch(GalleryViewModel.mediaPermission)
+                    permissionLauncher.launch(GalleryViewModel.mediaPermissions)
                 })
             is Screen.Viewer -> ViewerScreen(viewModel, screen.index)
         }
