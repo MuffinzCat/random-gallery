@@ -1,0 +1,108 @@
+name: Auto-update PR bases
+
+on:
+  push:
+    branches:
+      - muffin-fork
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: auto-update-pr-bases
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Rebase open pull requests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout muffin-fork
+        uses: actions/checkout@v7
+        with:
+          ref: muffin-fork
+          fetch-depth: 0
+          token: ${{ secrets.UPSTREAM_PR_TOKEN }}
+
+      - name: Rebase pull request branches onto updated bases
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_PR_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          queue=("muffin-fork")
+          queue_index=0
+          declare -A processed_bases
+
+          while (( queue_index < ${#queue[@]} )); do
+            base_branch="${queue[$queue_index]}"
+            queue_index=$((queue_index + 1))
+
+            if [[ -n "${processed_bases[$base_branch]:-}" ]]; then
+              continue
+            fi
+            processed_bases["$base_branch"]=1
+
+            echo "Scanning pull requests based on $base_branch"
+
+            mapfile -t pull_requests < <(
+              gh pr list \
+                --repo "$REPOSITORY" \
+                --base "$base_branch" \
+                --state open \
+                --json number,headRefName,headRepositoryOwner \
+                --jq '.[] | [.number, .headRefName, .headRepositoryOwner.login] | @tsv'
+            )
+
+            for pull_request in "${pull_requests[@]}"; do
+              IFS=$'\t' read -r pr_number head_branch head_owner <<< "$pull_request"
+
+              if [[ "$head_owner" != "$REPOSITORY_OWNER" ]]; then
+                echo "Skipping PR #$pr_number: head branch belongs to $head_owner."
+                continue
+              fi
+
+              echo "Checking PR #$pr_number: $head_branch -> $base_branch"
+
+              git fetch origin \
+                "$base_branch:refs/remotes/origin/$base_branch" \
+                "$head_branch:refs/remotes/origin/$head_branch"
+
+              base_sha=$(git rev-parse "origin/$base_branch")
+              old_head_sha=$(git rev-parse "origin/$head_branch")
+
+              if git merge-base --is-ancestor "$base_sha" "$old_head_sha"; then
+                echo "PR #$pr_number is already up to date."
+                queue+=("$head_branch")
+                continue
+              fi
+
+              git switch --detach "$old_head_sha"
+
+              if ! git rebase "origin/$base_branch"; then
+                git rebase --abort || true
+                echo "PR #$pr_number has a genuine conflict and needs manual resolution."
+                echo "- PR #$pr_number ($head_branch): conflict while rebasing onto $base_branch" >> "$GITHUB_STEP_SUMMARY"
+                continue
+              fi
+
+              if git push origin "HEAD:refs/heads/$head_branch" \
+                --force-with-lease="refs/heads/$head_branch:$old_head_sha"; then
+                echo "- PR #$pr_number ($head_branch): rebased onto $base_branch" >> "$GITHUB_STEP_SUMMARY"
+                queue+=("$head_branch")
+              else
+                echo "PR #$pr_number changed remotely while updating; leaving it untouched."
+                echo "- PR #$pr_number ($head_branch): skipped because the remote branch changed" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            done
+          done
