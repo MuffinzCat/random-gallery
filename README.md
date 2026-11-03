@@ -53,3 +53,9 @@ Download the APK, install it on your Android device, and start browsing.
 Only folders inside internal storage, such as Pictures and DCIM, are currently supported.
 
 Images are indexed through Android MediaStore and accessed from their source folders through Android's Storage Access Framework. Random Gallery never copies or moves your images. Media access is requested as required by the Android version; on Android 14 and newer, granting access to selected photos limits Random Gallery to those authorised images within your imported folders.
+
+## Development
+
+Pull requests are validated automatically with Android tests, lint, Kotlin style checks, a debug build, dependency review, and CodeQL analysis. Changes to GitHub Actions workflows are also checked with actionlint.
+
+The combined **PR Gate** must pass before a pull request can merge into `muffin-fork`.
