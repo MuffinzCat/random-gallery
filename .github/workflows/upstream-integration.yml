@@ -122,21 +122,9 @@ jobs:
           echo "NEW_CODE=$NEW_CODE" >> "$GITHUB_ENV"
           echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
 
-      - name: Unit tests
+      - name: Validate upstream integration
         if: steps.upstream.outputs.changed == 'true'
-        run: ./gradlew app:testDebugUnitTest --console=plain
-
-      - name: Kotlin style check
-        if: steps.upstream.outputs.changed == 'true'
-        run: ./gradlew app:ktlintCheck --console=plain
-
-      - name: Android lint
-        if: steps.upstream.outputs.changed == 'true'
-        run: ./gradlew app:lintDebug --console=plain
-
-      - name: Build release APK
-        if: steps.upstream.outputs.changed == 'true'
-        run: ./gradlew app:assembleRelease --console=plain
+        run: ./gradlew app:testDebugUnitTest app:ktlintCheck app:lintDebug app:assembleRelease --console=plain
 
       - name: Verify muffin-fork has not moved
         if: steps.upstream.outputs.changed == 'true'

@@ -1,0 +1,206 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches:
+      - muffin-fork
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      workflows: ${{ steps.changes.outputs.workflows }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect workflow changes
+        id: changes
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}"
+            if git diff --quiet "origin/${{ github.base_ref }}...HEAD" -- .github/workflows/; then
+              echo "workflows=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "workflows=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "workflows=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  android:
+    name: Android validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Test, lint and build
+        run: ./gradlew app:testDebugUnitTest app:lintDebug app:ktlintCheck app:assembleDebug --console=plain
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: random-gallery-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/random-gallery-muffin.apk
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-validation-reports-${{ github.sha }}
+          path: |
+            app/build/reports/
+            build/reports/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: moderate
+
+  codeql:
+    name: CodeQL analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: manual
+          queries: security-extended
+
+      - name: Build application for CodeQL
+        run: ./gradlew clean app:assembleDebug --no-build-cache --rerun-tasks --no-daemon --console=plain
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:java-kotlin
+
+  workflow-lint:
+    name: Workflow lint
+    needs: changes
+    if: needs.changes.outputs.workflows == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck
+
+      - name: Install verified actionlint
+        env:
+          ACTIONLINT_VERSION: '1.7.12'
+          ACTIONLINT_SHA256: '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8'
+        run: |
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --fail --location --silent --show-error --output "$archive" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum --check --strict
+          tar -xzf "$archive" actionlint
+          install -m 0755 actionlint "$RUNNER_TEMP/actionlint"
+          "$RUNNER_TEMP/actionlint" -version
+
+      - name: Validate workflows
+        run: |
+          "$RUNNER_TEMP/actionlint" -color -ignore "SC2129"
+
+  gate:
+    name: PR Gate
+    needs:
+      - changes
+      - android
+      - dependency-review
+      - codeql
+      - workflow-lint
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Verify validation results
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          ANDROID_RESULT: ${{ needs.android.result }}
+          DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+          EVENT_NAME: ${{ github.event_name }}
+          CODEQL_RESULT: ${{ needs.codeql.result }}
+          WORKFLOW_LINT_RESULT: ${{ needs.workflow-lint.result }}
+        shell: bash
+        run: |
+          printf '%-20s %s\n' \
+            "Change detection:" "$CHANGES_RESULT" \
+            "Android validation:" "$ANDROID_RESULT" \
+            "Dependency review:" "$DEPENDENCY_REVIEW_RESULT" \
+            "CodeQL analysis:" "$CODEQL_RESULT" \
+            "Workflow lint:" "$WORKFLOW_LINT_RESULT"
+
+          [[ "$CHANGES_RESULT" == "success" ]]
+          [[ "$ANDROID_RESULT" == "success" ]]
+          [[ "$DEPENDENCY_REVIEW_RESULT" == "success" || ( "$EVENT_NAME" == "workflow_dispatch" && "$DEPENDENCY_REVIEW_RESULT" == "skipped" ) ]]
+          [[ "$CODEQL_RESULT" == "success" ]]
+          [[ "$WORKFLOW_LINT_RESULT" == "success" || "$WORKFLOW_LINT_RESULT" == "skipped" ]]
