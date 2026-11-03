@@ -31,6 +31,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -72,8 +73,8 @@ fun ViewerScreen(
         ) { images.size }
 
     var pendingTrashItem by remember { mutableStateOf<ImageItem?>(null) }
-    var pendingTrashIndex by remember { mutableStateOf(-1) }
-    var pendingTrashSize by remember { mutableStateOf(0) }
+    var pendingTrashIndex by remember { mutableIntStateOf(-1) }
+    var pendingTrashSize by remember { mutableIntStateOf(0) }
 
     val trashLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
