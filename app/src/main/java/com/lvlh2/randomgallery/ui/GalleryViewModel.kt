@@ -62,6 +62,11 @@ class GalleryViewModel(
 
     /** Called on activity ON_RESUME: re-scan, but deferred while the viewer is open. */
     fun onAppResume() {
+        if (!hasMediaPermission()) {
+            _uiState.update { it.copy(loading = false, error = MEDIA_PERMISSION_MESSAGE) }
+            return
+        }
+
         if (_uiState.value.screen is Screen.Viewer) {
             pendingReloadAfterViewer = true
         } else if (reloadJob?.isActive == true) {
@@ -234,7 +239,7 @@ class GalleryViewModel(
     /** Only surface the unsupported-folder message when the affected set changes. */
     private var lastUnsupportedNames: Set<String> = emptySet()
 
-    fun hasMediaPermission(): Boolean = app.checkSelfPermission(mediaPermission) == PackageManager.PERMISSION_GRANTED
+    fun hasMediaPermission(): Boolean = mediaPermissions.any { app.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
 
     companion object {
         /** Message shown when the runtime media permission is missing (or refused). */
@@ -244,13 +249,18 @@ class GalleryViewModel(
         const val UNSUPPORTED_FOLDER_MESSAGE =
             "Unsupported folder — only folders inside internal storage are supported."
 
-        /** READ_MEDIA_IMAGES on Android 13+, the legacy storage permission below. */
-        val mediaPermission: String
+        /** Runtime permissions used for MediaStore enumeration on this Android version. */
+        val mediaPermissions: Array<String>
             get() =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    Manifest.permission.READ_MEDIA_IMAGES
-                } else {
-                    Manifest.permission.READ_EXTERNAL_STORAGE
+                when {
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
+                        arrayOf(
+                            Manifest.permission.READ_MEDIA_IMAGES,
+                            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
+                        )
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ->
+                        arrayOf(Manifest.permission.READ_MEDIA_IMAGES)
+                    else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
                 }
     }
 }
