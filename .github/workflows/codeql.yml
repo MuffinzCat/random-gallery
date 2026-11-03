@@ -2,12 +2,6 @@ name: CodeQL Security
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - muffin-fork
-  pull_request:
-    branches:
-      - muffin-fork
   schedule:
     - cron: '37 3 * * 0'
 
