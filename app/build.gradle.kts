@@ -15,8 +15,8 @@ android {
         applicationId = "com.muffinzcat.randomgallery"
         minSdk = 24
         targetSdk = 37
-        versionCode = 22
-        versionName = "2.1.0-muffin.2"
+        versionCode = 23
+        versionName = "2.1.0-muffin.3"
     }
 
     // One keystore for BOTH variants — mirrors the old Expo build, where the release
