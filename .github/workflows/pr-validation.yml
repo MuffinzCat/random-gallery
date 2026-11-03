@@ -187,6 +187,7 @@ jobs:
           CHANGES_RESULT: ${{ needs.changes.result }}
           ANDROID_RESULT: ${{ needs.android.result }}
           DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
+          EVENT_NAME: ${{ github.event_name }}
           CODEQL_RESULT: ${{ needs.codeql.result }}
           WORKFLOW_LINT_RESULT: ${{ needs.workflow-lint.result }}
         shell: bash
@@ -200,6 +201,6 @@ jobs:
 
           [[ "$CHANGES_RESULT" == "success" ]]
           [[ "$ANDROID_RESULT" == "success" ]]
-          [[ "$DEPENDENCY_REVIEW_RESULT" == "success" || "$DEPENDENCY_REVIEW_RESULT" == "skipped" ]]
+          [[ "$DEPENDENCY_REVIEW_RESULT" == "success" || ( "$EVENT_NAME" == "workflow_dispatch" && "$DEPENDENCY_REVIEW_RESULT" == "skipped" ) ]]
           [[ "$CODEQL_RESULT" == "success" ]]
           [[ "$WORKFLOW_LINT_RESULT" == "success" || "$WORKFLOW_LINT_RESULT" == "skipped" ]]
