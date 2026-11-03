@@ -6,8 +6,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -139,7 +137,7 @@ private fun TabScaffold(
                         scope.launch { gridState.animateScrollToItem(0) }
                     },
                 ) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "Reshuffle")
+                    Icon(painterResource(R.drawable.ic_shuffle), contentDescription = "Reshuffle")
                 }
             }
         },
