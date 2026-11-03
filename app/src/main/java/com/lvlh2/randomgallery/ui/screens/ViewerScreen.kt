@@ -169,7 +169,9 @@ fun ViewerScreen(
             Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 type = "image/*"
                 addCategory(Intent.CATEGORY_OPENABLE)
-                putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri)
+                }
             }
 
         try {
