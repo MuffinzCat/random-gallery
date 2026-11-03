@@ -45,7 +45,6 @@ suspend fun loadImageDetails(
                 BitmapFactory.decodeStream(stream, null, options)
             }
         } catch (_: Exception) {
-            Unit
         }
 
         ImageDetails(
