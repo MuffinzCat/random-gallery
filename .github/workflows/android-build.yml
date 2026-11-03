@@ -4,12 +4,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '17 4 * * 6'
-  push:
-    branches:
-      - muffin-fork
-  pull_request:
-    branches:
-      - muffin-fork
 
 permissions:
   contents: read
