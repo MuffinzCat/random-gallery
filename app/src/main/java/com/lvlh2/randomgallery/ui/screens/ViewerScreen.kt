@@ -3,7 +3,6 @@ package com.lvlh2.randomgallery.ui.screens
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
 import android.provider.MediaStore
@@ -43,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lvlh2.randomgallery.R
 import com.lvlh2.randomgallery.model.ImageItem
@@ -107,7 +107,7 @@ fun ViewerScreen(
 
     fun shareCurrentImage() {
         val item = images.getOrNull(pagerState.currentPage) ?: return
-        val uri = Uri.parse(item.uri)
+        val uri = item.uri.toUri()
         val mimeType = context.contentResolver.getType(uri) ?: "image/*"
         val intent =
             Intent(Intent.ACTION_SEND).apply {
@@ -127,7 +127,7 @@ fun ViewerScreen(
 
     fun editCurrentImage() {
         val item = images.getOrNull(pagerState.currentPage) ?: return
-        val uri = Uri.parse(item.uri)
+        val uri = item.uri.toUri()
         val mimeType = context.contentResolver.getType(uri) ?: "image/*"
         val intent =
             Intent(Intent.ACTION_EDIT).apply {
@@ -146,7 +146,7 @@ fun ViewerScreen(
 
     fun setCurrentImageAs() {
         val item = images.getOrNull(pagerState.currentPage) ?: return
-        val uri = Uri.parse(item.uri)
+        val uri = item.uri.toUri()
         val mimeType = context.contentResolver.getType(uri) ?: "image/*"
         val intent =
             Intent(Intent.ACTION_ATTACH_DATA).apply {
@@ -164,7 +164,7 @@ fun ViewerScreen(
     }
 
     fun showCurrentImageInFolder() {
-        val uri = Uri.parse(images.getOrNull(pagerState.currentPage)?.uri ?: return)
+        val uri = (images.getOrNull(pagerState.currentPage)?.uri ?: return).toUri()
         val intent =
             Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 type = "image/*"
@@ -185,7 +185,7 @@ fun ViewerScreen(
 
     fun openCurrentImage() {
         val item = images.getOrNull(pagerState.currentPage) ?: return
-        val uri = Uri.parse(item.uri)
+        val uri = item.uri.toUri()
         val mimeType = context.contentResolver.getType(uri) ?: "image/*"
         val intent =
             Intent(Intent.ACTION_VIEW).apply {
@@ -215,7 +215,7 @@ fun ViewerScreen(
 
         val mediaUri =
             try {
-                MediaStore.getMediaUri(context, Uri.parse(item.uri))?.let { fileUri ->
+                MediaStore.getMediaUri(context, item.uri.toUri())?.let { fileUri ->
                     val mediaId = fileUri.lastPathSegment?.toLongOrNull()
                     mediaId?.let {
                         MediaStore.Images.Media.getContentUri(MediaStore.getVolumeName(fileUri), it)

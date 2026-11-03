@@ -1,6 +1,7 @@
 package com.lvlh2.randomgallery.data
 
 import android.content.Context
+import androidx.core.content.edit
 import com.lvlh2.randomgallery.model.SavedFolder
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -24,7 +25,7 @@ class SharedPrefsFolderStore(
     }
 
     override fun save(folders: List<SavedFolder>) {
-        prefs.edit().putString(KEY_FOLDERS, FolderCodec.encode(folders)).apply()
+        prefs.edit { putString(KEY_FOLDERS, FolderCodec.encode(folders)) }
     }
 
     private companion object {

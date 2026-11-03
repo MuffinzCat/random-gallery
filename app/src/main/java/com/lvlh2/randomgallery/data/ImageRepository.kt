@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import androidx.core.net.toUri
 import com.lvlh2.randomgallery.model.ImageItem
 import com.lvlh2.randomgallery.model.SavedFolder
 import com.lvlh2.randomgallery.util.getTreeDocumentId
@@ -39,7 +40,7 @@ class ImageRepository(
             val seen = mutableSetOf<String>()
             val unsupported = mutableListOf<String>()
             for (folder in folders.filter { it.enabled }) {
-                val treeUri = Uri.parse(folder.uri)
+                val treeUri = folder.uri.toUri()
                 val docId = getTreeDocumentId(folder.uri)
                 if (!isMappable(treeUri, docId)) {
                     unsupported += folder.name
@@ -55,7 +56,7 @@ class ImageRepository(
         }
 
     /** The internal ExternalStorageProvider exposes "primary:<path>" docIds — the only shape we can map. */
-    fun isMappable(uriString: String): Boolean = isMappable(Uri.parse(uriString), getTreeDocumentId(uriString))
+    fun isMappable(uriString: String): Boolean = isMappable(uriString.toUri(), getTreeDocumentId(uriString))
 
     private fun isMappable(
         treeUri: Uri,

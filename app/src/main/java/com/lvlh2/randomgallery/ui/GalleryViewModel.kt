@@ -4,8 +4,8 @@ import android.Manifest
 import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lvlh2.randomgallery.data.FolderStore
@@ -113,7 +113,7 @@ class GalleryViewModel(
     private fun takePersistableUriPermission(uri: String) {
         try {
             app.contentResolver.takePersistableUriPermission(
-                Uri.parse(uri),
+                uri.toUri(),
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
             )
         } catch (_: Exception) {

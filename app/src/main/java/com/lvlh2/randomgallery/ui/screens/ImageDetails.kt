@@ -2,8 +2,8 @@ package com.lvlh2.randomgallery.ui.screens
 
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.core.net.toUri
 import com.lvlh2.randomgallery.model.ImageItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,7 +21,7 @@ suspend fun loadImageDetails(
     item: ImageItem,
 ): ImageDetails =
     withContext(Dispatchers.IO) {
-        val uri = Uri.parse(item.uri)
+        val uri = item.uri.toUri()
         val mimeType = context.contentResolver.getType(uri) ?: "Unknown"
         val sizeBytes =
             try {
