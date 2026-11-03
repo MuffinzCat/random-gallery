@@ -20,7 +20,7 @@ concurrency:
 jobs:
   arm-auto-merge:
     name: Arm squash auto-merge
-    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
+    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login == 'MuffinzCat'
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
