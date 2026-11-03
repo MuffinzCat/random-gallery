@@ -7,8 +7,6 @@ on:
   push:
     branches:
       - muffin-fork
-      - 'feature/**'
-      - 'fix/**'
   pull_request:
     branches:
       - muffin-fork
@@ -42,17 +40,8 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Unit tests
-        run: ./gradlew app:testDebugUnitTest --console=plain
-
-      - name: Android lint
-        run: ./gradlew app:lintDebug --console=plain
-
-      - name: Kotlin style check
-        run: ./gradlew app:ktlintCheck --console=plain
-
-      - name: Build debug APK
-        run: ./gradlew app:assembleDebug --console=plain
+      - name: Test, lint and build
+        run: ./gradlew app:testDebugUnitTest app:lintDebug app:ktlintCheck app:assembleDebug --console=plain
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v7
