@@ -14,7 +14,7 @@ android {
     defaultConfig {
         applicationId = "com.muffinzcat.randomgallery"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 22
         versionName = "2.1.0-muffin.2"
     }
