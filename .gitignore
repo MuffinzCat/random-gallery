@@ -10,8 +10,6 @@ local.properties
 .cxx/
 .kotlin/
 
-# Claude
-.claude/
 
 # macOS / Windows
 .DS_Store
