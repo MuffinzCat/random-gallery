@@ -7,6 +7,26 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+val releaseSigningValues =
+    mapOf(
+        "storeFile" to System.getenv("RG_SIGNING_STORE_FILE"),
+        "storePassword" to System.getenv("RG_SIGNING_STORE_PASSWORD"),
+        "keyAlias" to System.getenv("RG_SIGNING_KEY_ALIAS"),
+        "keyPassword" to System.getenv("RG_SIGNING_KEY_PASSWORD"),
+    )
+
+val releaseSigningRequested =
+    gradle.startParameter.taskNames.any {
+        it.endsWith("assembleRelease", ignoreCase = true) ||
+            it.endsWith("bundleRelease", ignoreCase = true)
+    }
+
+if (releaseSigningRequested) {
+    val missing = releaseSigningValues.filterValues { it.isNullOrBlank() }.keys
+    require(missing.isEmpty()) {
+        "Release signing credentials are missing: ${missing.joinToString()}"
+    }
+}
 android {
     namespace = "com.lvlh2.randomgallery"
     compileSdk = 37
@@ -19,8 +39,20 @@ android {
         versionName = "2.1.0-muffin.3"
     }
 
+
+    signingConfigs {
+        create("release") {
+            if (releaseSigningValues.values.all { !it.isNullOrBlank() }) {
+                storeFile = file(requireNotNull(releaseSigningValues["storeFile"]))
+                storePassword = releaseSigningValues["storePassword"]
+                keyAlias = releaseSigningValues["keyAlias"]
+                keyPassword = releaseSigningValues["keyPassword"]
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
