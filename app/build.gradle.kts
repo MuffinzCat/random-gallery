@@ -19,24 +19,8 @@ android {
         versionName = "2.1.0-muffin.3"
     }
 
-    // One keystore for BOTH variants — mirrors the old Expo build, where the release
-    // APK was signed with this debug key. Signing with the exact same key is what
-    // lets the new APK install over the installed v1.0.9.
-    signingConfigs {
-        create("app") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-    }
-
     buildTypes {
-        debug {
-            signingConfig = signingConfigs.getByName("app")
-        }
         release {
-            signingConfig = signingConfigs.getByName("app")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
