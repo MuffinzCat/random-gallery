@@ -50,7 +50,22 @@ android {
             }
         }
     }
+    flavorDimensions += "distribution"
+
+    productFlavors {
+        create("community") {
+            dimension = "distribution"
+            applicationId = "com.muffinzcat.randomgallery.community"
+        }
+        create("play") {
+            dimension = "distribution"
+            applicationId = "com.muffinzcat.randomgallery"
+        }
+    }
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
