@@ -7,26 +7,34 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-val releaseSigningValues =
+fun signingValues(prefix: String) =
     mapOf(
-        "storeFile" to System.getenv("RG_SIGNING_STORE_FILE"),
-        "storePassword" to System.getenv("RG_SIGNING_STORE_PASSWORD"),
-        "keyAlias" to System.getenv("RG_SIGNING_KEY_ALIAS"),
-        "keyPassword" to System.getenv("RG_SIGNING_KEY_PASSWORD"),
+        "storeFile" to System.getenv("${prefix}_STORE_FILE"),
+        "storePassword" to System.getenv("${prefix}_STORE_PASSWORD"),
+        "keyAlias" to System.getenv("${prefix}_KEY_ALIAS"),
+        "keyPassword" to System.getenv("${prefix}_KEY_PASSWORD"),
     )
 
-val releaseSigningRequested =
-    gradle.startParameter.taskNames.any {
-        it.endsWith("assembleRelease", ignoreCase = true) ||
-            it.endsWith("bundleRelease", ignoreCase = true)
-    }
+val communitySigningValues = signingValues("RG_COMMUNITY_SIGNING")
+val playSigningValues = signingValues("RG_PLAY_SIGNING")
 
-if (releaseSigningRequested) {
-    val missing = releaseSigningValues.filterValues { it.isNullOrBlank() }.keys
-    require(missing.isEmpty()) {
-        "Release signing credentials are missing: ${missing.joinToString()}"
+val requestedTasks = gradle.startParameter.taskNames.map { it.lowercase() }
+val allReleaseSigningRequested = requestedTasks.any { it.endsWith("assemblerelease") || it.endsWith("bundlerelease") }
+val communitySigningRequested = allReleaseSigningRequested || requestedTasks.any { "communityrelease" in it }
+val playSigningRequested = allReleaseSigningRequested || requestedTasks.any { "playrelease" in it }
+
+fun requireSigningCredentials(name: String, requested: Boolean, values: Map<String, String?>) {
+    if (requested) {
+        val missing = values.filterValues { it.isNullOrBlank() }.keys
+        require(missing.isEmpty()) {
+            "$name signing credentials are missing: ${missing.joinToString()}"
+        }
     }
 }
+
+requireSigningCredentials("Community release", communitySigningRequested, communitySigningValues)
+requireSigningCredentials("Play release", playSigningRequested, playSigningValues)
+
 android {
     namespace = "com.lvlh2.randomgallery"
     compileSdk = 37
@@ -41,15 +49,24 @@ android {
 
 
     signingConfigs {
-        create("release") {
-            if (releaseSigningValues.values.all { !it.isNullOrBlank() }) {
-                storeFile = file(requireNotNull(releaseSigningValues["storeFile"]))
-                storePassword = releaseSigningValues["storePassword"]
-                keyAlias = releaseSigningValues["keyAlias"]
-                keyPassword = releaseSigningValues["keyPassword"]
+        create("communityRelease") {
+            if (communitySigningValues.values.all { !it.isNullOrBlank() }) {
+                storeFile = file(requireNotNull(communitySigningValues["storeFile"]))
+                storePassword = communitySigningValues["storePassword"]
+                keyAlias = communitySigningValues["keyAlias"]
+                keyPassword = communitySigningValues["keyPassword"]
+            }
+        }
+        create("playRelease") {
+            if (playSigningValues.values.all { !it.isNullOrBlank() }) {
+                storeFile = file(requireNotNull(playSigningValues["storeFile"]))
+                storePassword = playSigningValues["storePassword"]
+                keyAlias = playSigningValues["keyAlias"]
+                keyPassword = playSigningValues["keyPassword"]
             }
         }
     }
+
     flavorDimensions += "distribution"
 
     productFlavors {
@@ -67,7 +84,6 @@ android {
             applicationIdSuffix = ".debug"
         }
         release {
-            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -96,6 +112,16 @@ android {
     // objects are VariantOutputImpl, which does — set it there (AGP-8 way, no deprecated API).
     androidComponents {
         onVariants { variant ->
+            if (variant.buildType == "release") {
+                val distribution = variant.productFlavors.single { it.first == "distribution" }.second
+                val signingConfigName = when (distribution) {
+                    "community" -> "communityRelease"
+                    "play" -> "playRelease"
+                    else -> error("Unknown distribution flavour: $distribution")
+                }
+                variant.signingConfig.setConfig(signingConfigs.getByName(signingConfigName))
+            }
+
             variant.outputs.forEach { output ->
                 (output as com.android.build.api.variant.impl.VariantOutputImpl)
                     .outputFileName = "random-gallery-muffin.apk"
